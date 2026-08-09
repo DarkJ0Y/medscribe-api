@@ -226,28 +226,72 @@ Branch on `error.code`, not the message or the status. `request_id` is echoed in
 
 ## Word error rate
 
-Three clinical-dictation fixtures carry a `reference_transcript`, so the pipeline
-can be scored end to end. Reproduce with one command — no server, no API key:
+Reproduce with one command — no server, no API key:
 
 ```bash
-python scripts/evaluate_wer.py
+python scripts/evaluate_wer.py              # committed fixtures
+python scripts/evaluate_wer.py --samples    # + the sampled HF corpus
 ```
 
+Every sample is listed, including the ones that **cannot** be scored. A table that
+quietly omits them would suggest the corpus is smaller and better-referenced than it
+is. Three statuses are distinguished:
+
+| Status | Meaning |
+| --- | --- |
+| `scored` | A reference exists **and** the transcript came from transcribing this audio. WER is meaningful. |
+| `no reference` | Nothing to score against. WER is undefined, not zero — also the normal production case. |
+| `not comparable` | A reference exists, but the transcript is of *different* audio. Printed for illustration, excluded from every aggregate. |
+
 ```
-Word error rate  (in-process ASGI)
-========================================================================================
-fixture                           WER    S    D    I  hits  ref  hyp  exact
-----------------------------------------------------------------------------------------
-en_clinical_cardiac            0.0000    0    0    0    26   26   26  yes
-en_clinical_hypertension       0.2692    3    4    0    19   26   22  no
-en_clinical_oncology           0.3077    3    0    5    23   26   31  no
-----------------------------------------------------------------------------------------
-CORPUS (errors / ref words)    0.1923                   15 of 78
-========================================================================================
+Committed fixture corpus -- testdata/transcription/  (8 samples)
+================================================================================================
+sample                            WER    S    D    I  hits  ref  hyp  status
+------------------------------------------------------------------------------------------------
+ambient_noise                       -    -    -    -     -    -    -  no reference
+bn_en_code_switch                   -    -    -    -     -    -    -  no reference
+bn_prescription                     -    -    -    -     -    -    -  no reference
+en_clinical_cardiac            0.0000    0    0    0    26   26   26  scored
+en_clinical_hypertension       0.2692    3    4    0    19   26   22  scored
+en_clinical_oncology           0.3077    3    0    5    23   26   31  scored
+en_lab_query                        -    -    -    -     -    -    -  no reference
+silence                             -    -    -    -     -    -    -  no reference
+------------------------------------------------------------------------------------------------
+CORPUS (fixtures)              0.1923  15 errors / 78 reference words over 3 of 8 samples
+================================================================================================
 ```
 
 Corpus WER is total errors over total reference words, not the mean of the three
 rates — averaging rates would weight a 6-word clip like a 600-word one.
+
+With `--samples`, the 20 downloaded clips are added. **None of them is scoreable
+under the mock adapters**, for two different reasons:
+
+```
+en_sample_01.wav               1.5882   17    0   10     0   17   27  not comparable
+en_sample_02.wav               2.6000    9    0   17     1   10   27  not comparable
+...                                                              ^^
+bn_sample_01.wav                    -    -    -    -     -    -    -  no reference
+------------------------------------------------------------------------------------------------
+CORPUS (samples)                    -  no scoreable samples in this group
+  10 not comparable   mock adapter replayed an unrelated fixture
+  10 no reference     long-form source with one whole-recording transcription
+```
+
+Look at the `hyp` column: **27 for every LibriSpeech row.** The mock replayed the
+same 27-word fixture for all ten files, so those WERs (0.93–2.60, with `hits` at 0–3)
+measure the distance between two unrelated texts. That constant is the tell — and the
+reason the harness refuses to aggregate them. The ten Bengali clips have no aligned
+reference at all: their sources run 4 minutes to 5.8 hours with a single
+whole-recording transcription.
+
+Point the harness at a real provider and the LibriSpeech rows become genuinely
+`scored`, because the transcript is then that provider's own output against an exact
+utterance-level reference:
+
+```bash
+python scripts/evaluate_wer.py --samples --base-url http://localhost:8000
+```
 
 **Read the second row carefully.** `en_clinical_hypertension` transcribes *"one
 hundred eighty over one hundred ten"* as **"180 over 110"** and *"intravenous"* as
@@ -281,19 +325,11 @@ The score appears in the API response too:
 > declares `reference_transcript`, which makes it a regression-testing tool rather
 > than a production monitoring metric.
 
-Two honest caveats about what these numbers mean:
-
-1. Under the default **mock** adapters the transcripts are replayed from
-   `testdata/`, so this measures the *pipeline* — normalization, alignment, segment
-   filtering, serialization — not a speech model. The recorded ASR output in the two
-   imperfect fixtures is **synthetic**, hand-authored to reproduce documented
-   Whisper failure modes. No live model produced it.
-2. Point the harness at a service running with `USE_MOCK_ADAPTERS=false` and the
-   same fixtures become a genuine model evaluation, because then the transcript is
-   the provider's own output:
-   ```bash
-   python scripts/evaluate_wer.py --base-url http://localhost:8000
-   ```
+One caveat that governs all of the above: under the default **mock** adapters the
+transcripts are replayed from `testdata/`, so the scored rows measure the *pipeline*
+— normalization, alignment, segment filtering, serialization — not a speech model.
+The recorded ASR output in the two imperfect fixtures is **synthetic**, hand-authored
+to reproduce documented Whisper failure modes. No live model produced it.
 
 ## Architecture
 
