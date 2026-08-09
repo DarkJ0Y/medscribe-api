@@ -1,0 +1,40 @@
+# Keep the build context small and free of secrets.
+.git/
+.gitignore
+.env
+.env.*
+!.env.example
+pat.txt
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Model weights must never reach the daemon.
+models/
+*.bin
+*.onnx
+*.pt
+
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# testdata/transcription/ and testdata/ocr/ ARE shipped: the mock adapters replay
+# them at runtime, and that is what makes the default image work offline.
+#
+# The Hugging Face sampled corpus is NOT shipped. It is ~18 MB used only for
+# exercising the REAL adapters and for manual testing, so in the default image it
+# would be pure dead weight -- 18 MB of files nothing in the container can reach.
+# Mount it as a volume if you need it inside a container.
+testdata/audio/
+testdata/documents/

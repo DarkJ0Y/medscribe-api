@@ -1,0 +1,10 @@
+{
+  "fixture": "partial_crop",
+  "description": "A phone photograph cropped so that the entire header is missing -- only two result rows survived the frame. This is the realistic degradation case, and it tests the boundary of MIN_LAB_ROWS_FOR_REPORT (default 2): exactly at the threshold, so it must be ACCEPTED as a lab report, with every ReportMeta field null rather than invented. A parser that guesses a patient name out of a test name, or that refuses the whole document because the header is absent, fails this fixture.",
+  "provider": "mock-tesseract",
+  "mean_confidence": 74.3,
+  "lines": [
+    { "line_number": 1, "text": "Haemoglobin          11.2        g/dl          13.0 - 17.0", "confidence": 76.8 },
+    { "line_number": 2, "text": "Total WBC Count      12,500      /cumm         4,000 - 11,000", "confidence": 71.9 }
+  ]
+}

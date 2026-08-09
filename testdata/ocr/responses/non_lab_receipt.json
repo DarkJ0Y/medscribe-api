@@ -1,0 +1,21 @@
+{
+  "fixture": "non_lab_receipt",
+  "description": "Graceful-degradation fixture: a supermarket receipt, not a lab report. Chosen as a HARD negative rather than an easy one. It is structurally very close to a lab report -- a business header, a reference number, a date, a column header row, and eight lines of 'label + number' that a naive row matcher would happily accept as test results. What it lacks is any clinical unit (mg/dL, g/dl, %) and any reference-range column. The service must return a structured not_a_lab_report error, not a report listing 'Basmati Rice 5kg' with a value of 720.00.",
+  "provider": "mock-tesseract",
+  "mean_confidence": 90.4,
+  "lines": [
+    { "line_number": 1, "text": "SHWAPNO SUPERSHOP", "confidence": 96.2 },
+    { "line_number": 2, "text": "Gulshan Branch, Dhaka", "confidence": 93.7 },
+    { "line_number": 3, "text": "Invoice #: 20240612-4471", "confidence": 91.4 },
+    { "line_number": 4, "text": "Date: 12/06/2024 18:42", "confidence": 92.8 },
+    { "line_number": 5, "text": "Item              Qty    Price", "confidence": 89.9 },
+    { "line_number": 6, "text": "Basmati Rice 5kg   1     720.00", "confidence": 90.1 },
+    { "line_number": 7, "text": "Milk Powder 1kg    2     1,340.00", "confidence": 88.6 },
+    { "line_number": 8, "text": "Eggs (dozen)       3     465.00", "confidence": 89.3 },
+    { "line_number": 9, "text": "Soybean Oil 2L     1     385.00", "confidence": 87.9 },
+    { "line_number": 10, "text": "Subtotal                2,525.00", "confidence": 91.2 },
+    { "line_number": 11, "text": "VAT 5%                    126.25", "confidence": 88.4 },
+    { "line_number": 12, "text": "Total                   2,651.25", "confidence": 92.6 },
+    { "line_number": 13, "text": "Thank you for shopping with us", "confidence": 90.8 }
+  ]
+}

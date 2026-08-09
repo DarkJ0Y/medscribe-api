@@ -1,0 +1,23 @@
+{
+  "fixture": "en_lab_query",
+  "description": "English clinical dictation. Doubles as the global default fixture for unrecognised uploads.",
+  "provider": "mock-whisper",
+  "text": "Please check the patient's complete blood count and lipid profile. Haemoglobin was eleven point two last week, which is low for a forty five year old male.",
+  "detected_language": "en",
+  "duration_seconds": 11.2,
+  "no_speech_probability": 0.008,
+  "segments": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 4.96,
+      "text": "Please check the patient's complete blood count and lipid profile.",
+      "no_speech_probability": 0.006
+    },
+    {
+      "start_seconds": 4.96,
+      "end_seconds": 11.2,
+      "text": "Haemoglobin was eleven point two last week, which is low for a forty five year old male.",
+      "no_speech_probability": 0.011
+    }
+  ]
+}

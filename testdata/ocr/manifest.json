@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "description": "Replay index for MockOCRAdapter. Resolution order is: sha256 of the uploaded bytes, then the filename stem, then filename keyword tokens, then default_fixture. sha256 values are filled in by testdata/generate_media.py and must be refreshed if the images are regenerated.",
+  "provider": "mock-tesseract",
+  "default_fixture": "cbc_report",
+  "fixtures": {
+    "cbc_report": {
+      "response": "responses/cbc_report.json",
+      "media": "images/cbc_report.png",
+      "sha256": "bdff8857848c52dd6cb832c162adda51339d39d5595c55f46a8b69cb82a6491e",
+      "keywords": [
+        "cbc",
+        "blood",
+        "count",
+        "haemoglobin"
+      ]
+    },
+    "lipid_profile": {
+      "response": "responses/lipid_profile.json",
+      "media": "images/lipid_profile.png",
+      "sha256": "7bb28aae0b1bdb8f1f9c91b69e0e19ca877f36ef017fd634a402a9ae155f7be9",
+      "keywords": [
+        "lipid",
+        "cholesterol"
+      ]
+    },
+    "thyroid_panel": {
+      "response": "responses/thyroid_panel.json",
+      "media": "images/thyroid_panel.png",
+      "sha256": "c55d20a3ecf48fa36b893299f2dc605f6bcd2e005c638a57740dc1b446769abd",
+      "keywords": [
+        "thyroid",
+        "tsh"
+      ]
+    },
+    "partial_crop": {
+      "response": "responses/partial_crop.json",
+      "media": "images/partial_crop.png",
+      "sha256": "8eb91d3761da3fe69ad8178c3296593ed7569a85b5bd54d029d66abace833352",
+      "keywords": [
+        "partial",
+        "crop",
+        "cropped"
+      ]
+    },
+    "non_lab_receipt": {
+      "response": "responses/non_lab_receipt.json",
+      "media": "images/non_lab_receipt.png",
+      "sha256": "1bf89e6b3abe1a5e7dd54fcd4f0d911dbfc8d9edbad7500f1cd557bea5370177",
+      "keywords": [
+        "receipt",
+        "invoice",
+        "nonlab",
+        "shop",
+        "selfie"
+      ]
+    },
+    "blank_page": {
+      "response": "responses/blank_page.json",
+      "media": "images/blank_page.png",
+      "sha256": "ac84d91ea6faa40ae07b26c2550074f7fd9a498953e17c40c1df52ad21e016d3",
+      "keywords": [
+        "blank",
+        "empty",
+        "black",
+        "unreadable"
+      ]
+    }
+  }
+}

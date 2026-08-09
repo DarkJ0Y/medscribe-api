@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medscribe"
+version = "0.1.0"
+description = "Speech transcription and medical lab-report extraction service"
+readme = "README.md"
+requires-python = ">=3.11"
+
+# Base runtime. Deliberately free of every ML/provider dependency: the mock
+# adapters must run on this set alone, which is what lets `docker compose up`
+# work with no API keys and no model weights.
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "pydantic>=2.7,<3.0",
+    "pydantic-settings>=2.3,<3.0",
+    "python-multipart>=0.0.9",
+    "uvicorn[standard]>=0.30,<1.0",
+]
+
+[project.optional-dependencies]
+# Installed only for USE_MOCK_ADAPTERS=false. Kept out of the default image.
+real = [
+    "openai>=1.40,<2.0",
+    "pytesseract>=0.3.10",
+    "pillow>=10.3",
+]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api*", "services*", "adapters*", "config*"]
+
+[tool.setuptools]
+py-modules = ["main"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+asyncio_mode = "auto"
+markers = [
+    "unit: fast, no I/O beyond testdata reads",
+    "integration: exercises the ASGI app end to end",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "TID"]
+
+# Lint-time guard for the layer rule: TID251 bans the framework everywhere,
+# then api/ and main.py -- the only layers allowed to speak HTTP -- are exempted.
+# The ban therefore bites in services/, adapters/ and config/, which is the rule
+# we actually care about. tests/unit/test_layer_boundaries.py asserts the same
+# thing at runtime so a missing linter cannot silently drop the guarantee.
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"fastapi".msg = "Framework imports are confined to api/ and main.py."
+"starlette".msg = "Framework imports are confined to api/ and main.py."
+
+[tool.ruff.lint.per-file-ignores]
+"api/*" = ["TID251"]
+"main.py" = ["TID251"]
+"tests/*" = ["TID251", "B011"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true

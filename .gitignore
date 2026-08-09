@@ -1,0 +1,54 @@
+# --- secrets ------------------------------------------------------------
+# Never commit real configuration or credentials. .env.example is the only
+# env file that belongs in version control.
+.env
+.env.*
+!.env.example
+*.pat
+pat.txt
+*.pem
+*.key
+
+# --- python -------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# --- tooling ------------------------------------------------------------
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- models / large artifacts ------------------------------------------
+# Real-adapter weights must never enter the repo or the image build context.
+*.bin
+*.onnx
+*.pt
+models/
+
+# --- sampled Hugging Face corpus ---------------------------------------
+# ~18 MB of media downloaded by scripts/download_testdata.py. Not committed: the
+# script pins each dataset's commit revision, selects deterministically, and
+# records a sha256 per file, so the corpus is reproducible from the tracked
+# ground-truth JSON. Regenerate with:
+#     python scripts/download_testdata.py
+# The ground-truth JSON files themselves ARE tracked -- they document the corpus
+# and are small. Note this is the opposite call from testdata/transcription and
+# testdata/ocr, which are committed because they are tiny and the test suite
+# depends on their exact bytes.
+testdata/audio/*.wav
+testdata/documents/*.png
+scripts/.cache/
+
+# --- os / editor --------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

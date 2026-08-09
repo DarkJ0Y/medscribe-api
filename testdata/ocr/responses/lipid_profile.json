@@ -1,0 +1,23 @@
+{
+  "fixture": "lipid_profile",
+  "description": "Lipid profile. Two things earn this fixture its place. First, HDL Cholesterol has an INVERTED reference bound (> 40) where a value of 38 is LOW -- a flag derivation that naively assumes 'above the bound means high' gets this backwards, and getting HDL backwards inverts the clinical reading. Second, the Vitamin D line contains a genuine OCR garble: '2S.4' (capital S misread for 5). That value MUST come back unparsed with raw preserved, never silently repaired to 25.4 -- see DECISIONS.md D5. Note also that TC/HDL Ratio is unitless, so the unit column is blank.",
+  "provider": "mock-tesseract",
+  "mean_confidence": 85.2,
+  "lines": [
+    { "line_number": 1, "text": "LABAID DIAGNOSTIC", "confidence": 94.7 },
+    { "line_number": 2, "text": "Dhanmondi, Dhaka | Ref. No: LAB/2024/44821", "confidence": 88.1 },
+    { "line_number": 3, "text": "Name : MRS. FARZANA AKTER", "confidence": 92.4 },
+    { "line_number": 4, "text": "Age : 52 Years        Sex : Female", "confidence": 90.8 },
+    { "line_number": 5, "text": "Sample Date : 05-04-2024", "confidence": 91.5 },
+    { "line_number": 6, "text": "LIPID PROFILE (FASTING)", "confidence": 95.2 },
+    { "line_number": 7, "text": "Investigation        Value     Unit       Bio. Ref. Interval", "confidence": 86.9 },
+    { "line_number": 8, "text": "Total Cholesterol    245       mg/dL      < 200", "confidence": 90.2 },
+    { "line_number": 9, "text": "Triglycerides        180       mg/dL      < 150", "confidence": 89.7 },
+    { "line_number": 10, "text": "HDL Cholesterol      38        mg/dL      > 40", "confidence": 88.4 },
+    { "line_number": 11, "text": "LDL Cholesterol      165       mg/dL      < 100", "confidence": 87.6 },
+    { "line_number": 12, "text": "VLDL Cholesterol     36        mg/dL      < 30", "confidence": 85.3 },
+    { "line_number": 13, "text": "TC / HDL Ratio       6.4                  < 4.5", "confidence": 81.2 },
+    { "line_number": 14, "text": "Vitamin D (25-OH)    2S.4      ng/mL      30 - 100", "confidence": 61.8 },
+    { "line_number": 15, "text": "Note: Fasting sample, 12 hours.", "confidence": 83.4 }
+  ]
+}

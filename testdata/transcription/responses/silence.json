@@ -1,0 +1,10 @@
+{
+  "fixture": "silence",
+  "description": "Digital silence. The provider returns no text at all and no segments, and declines to identify a language. The service must answer HTTP 200 with speech_detected=false rather than raising -- see DECISIONS.md D6.",
+  "provider": "mock-whisper",
+  "text": "",
+  "detected_language": null,
+  "duration_seconds": 4.0,
+  "no_speech_probability": 0.974,
+  "segments": []
+}

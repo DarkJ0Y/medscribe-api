@@ -1,0 +1,29 @@
+{
+  "fixture": "bn_en_code_switch",
+  "description": "Code-switched Bengali/English, which is how clinicians in Bangladesh actually dictate. The provider reports a BCP-47 tag ('bn-BD') to exercise tag normalization, and English medical terms are preserved inside Bengali sentences.",
+  "provider": "mock-whisper",
+  "text": "রোগীর blood pressure একশো চল্লিশ বাই নব্বই। CBC আর lipid profile test দুটোই করাতে হবে। Fasting অবস্থায় আসতে বলবেন।",
+  "detected_language": "bn-BD",
+  "duration_seconds": 9.41,
+  "no_speech_probability": 0.031,
+  "segments": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 3.88,
+      "text": "রোগীর blood pressure একশো চল্লিশ বাই নব্বই।",
+      "no_speech_probability": 0.028
+    },
+    {
+      "start_seconds": 3.88,
+      "end_seconds": 6.95,
+      "text": "CBC আর lipid profile test দুটোই করাতে হবে।",
+      "no_speech_probability": 0.022
+    },
+    {
+      "start_seconds": 6.95,
+      "end_seconds": 9.41,
+      "text": "Fasting অবস্থায় আসতে বলবেন।",
+      "no_speech_probability": 0.041
+    }
+  ]
+}

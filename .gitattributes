@@ -1,0 +1,17 @@
+# Normalize all text to LF in the repository and in working copies.
+#
+# Without this, a checkout on Windows converts text to CRLF, and the CRLFs end up
+# inside the shell heredocs in Dockerfile and .github/workflows/ci.yml -- where bash
+# reads the trailing \r as part of the command and fails with errors like
+# "$'\r': command not found". Pinning LF keeps the build and CI byte-identical on
+# every platform.
+* text=auto eol=lf
+
+# Never touch binaries: line-ending conversion would corrupt them, and their sha256
+# digests are recorded in the fixture manifests.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.wav binary
+*.flac binary
+*.parquet binary

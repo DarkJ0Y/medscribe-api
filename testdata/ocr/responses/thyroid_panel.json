@@ -1,0 +1,21 @@
+{
+  "fixture": "thyroid_panel",
+  "description": "Thyroid function test, chosen for its metadata and non-numeric edge cases. 'Age/Sex : 3 M / Male' is a three-MONTH-OLD infant -- the fixture that justifies keeping ReportMeta.age a string, since coercing '3 M' to the integer 3 would silently age the patient by three years. 'Not Done' must land as unparsed rather than being read as a number or dropped. Anti-TPO '>1000' is a one-sided value bound against a one-sided reference bound. T3 Total uses times-ten notation (1.2 x 10^2 = 120) that sits INSIDE its 80-200 range, so a normalizer that fails to expand the exponent would wrongly flag 1.2 as critically low.",
+  "provider": "mock-tesseract",
+  "mean_confidence": 87.9,
+  "lines": [
+    { "line_number": 1, "text": "IBN SINA DIAGNOSTIC & CONSULTATION CENTER", "confidence": 93.1 },
+    { "line_number": 2, "text": "Patient : MOHAMMAD TANVIR HOSSAIN", "confidence": 91.8 },
+    { "line_number": 3, "text": "Age/Sex : 3 M / Male", "confidence": 89.2 },
+    { "line_number": 4, "text": "Reg. No : ISD-2024-11902", "confidence": 90.6 },
+    { "line_number": 5, "text": "Date : 21/05/2024", "confidence": 92.9 },
+    { "line_number": 6, "text": "THYROID FUNCTION TEST", "confidence": 95.8 },
+    { "line_number": 7, "text": "Parameter       Result      Unit        Normal Range", "confidence": 87.3 },
+    { "line_number": 8, "text": "TSH             6.85        uIU/mL      0.40 - 4.00", "confidence": 89.4 },
+    { "line_number": 9, "text": "FT4             1.1         ng/dL       0.80 - 1.80", "confidence": 90.1 },
+    { "line_number": 10, "text": "FT3             Not Done    -           -", "confidence": 78.5 },
+    { "line_number": 11, "text": "Anti-TPO Ab     >1000       IU/mL       < 34", "confidence": 84.7 },
+    { "line_number": 12, "text": "T3 Total        1.2 x 10^2  ng/dL       80 - 200", "confidence": 81.9 },
+    { "line_number": 13, "text": "Remarks: Subclinical hypothyroidism. Repeat after 6 weeks.", "confidence": 82.2 }
+  ]
+}

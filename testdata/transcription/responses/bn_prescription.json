@@ -1,0 +1,29 @@
+{
+  "fixture": "bn_prescription",
+  "description": "Bengali clinical dictation. Exercises the bn path and a provider that reports its language as the full word 'bengali' rather than an ISO code.",
+  "provider": "mock-whisper",
+  "text": "রোগীর তিন দিন ধরে জ্বর এবং মাথাব্যথা রয়েছে। গলা ব্যথাও আছে। রক্তের সিবিসি পরীক্ষা করাতে হবে।",
+  "detected_language": "bengali",
+  "duration_seconds": 8.64,
+  "no_speech_probability": 0.017,
+  "segments": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 3.42,
+      "text": "রোগীর তিন দিন ধরে জ্বর এবং মাথাব্যথা রয়েছে।",
+      "no_speech_probability": 0.012
+    },
+    {
+      "start_seconds": 3.42,
+      "end_seconds": 5.18,
+      "text": "গলা ব্যথাও আছে।",
+      "no_speech_probability": 0.024
+    },
+    {
+      "start_seconds": 5.18,
+      "end_seconds": 8.64,
+      "text": "রক্তের সিবিসি পরীক্ষা করাতে হবে।",
+      "no_speech_probability": 0.015
+    }
+  ]
+}

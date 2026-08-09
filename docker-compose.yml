@@ -1,0 +1,63 @@
+# `docker compose up` on a clean clone, with no .env and no API key, brings up a
+# fully working service backed by the mock adapters. No model weights are
+# downloaded and the running container needs no outbound network access.
+#
+# (The *build* does need network, for the base image and five pip dependencies.
+# Only the runtime is network-free -- see the README's "What works offline".)
+
+services:
+  api:
+    build:
+      context: .
+      # Set to "true" to build an image with the OpenAI SDK, Pillow/pytesseract and
+      # the tesseract binary. Adds roughly 150 MB, and still requires
+      # USE_MOCK_ADAPTERS=false plus OPENAI_API_KEY at runtime to be used.
+      args:
+        INSTALL_REAL_ADAPTERS: "false"
+    image: medscribe:local
+    ports:
+      - "8000:8000"
+
+    environment:
+      # Every value here is already the default in config/settings.py. They are
+      # restated so that `docker compose config` shows the effective configuration
+      # of the service without anyone having to read the Python.
+      USE_MOCK_ADAPTERS: "true"
+      LOG_LEVEL: "INFO"
+      API_V1_PREFIX: "/api/v1"
+      MAX_AUDIO_BYTES: "26214400"
+      MAX_IMAGE_BYTES: "26214400"
+      # To run against real providers instead:
+      #   USE_MOCK_ADAPTERS: "false"
+      #   OPENAI_API_KEY: "${OPENAI_API_KEY:?set OPENAI_API_KEY or keep mock mode}"
+      # ...and rebuild with INSTALL_REAL_ADAPTERS=true.
+
+    # Duplicated from the Dockerfile so that `docker compose up` reports readiness
+    # even when the image was built elsewhere without a HEALTHCHECK.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import sys, urllib.request
+          sys.exit(0 if urllib.request.urlopen(
+              "http://127.0.0.1:8000/health", timeout=3).status == 200 else 1)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    restart: unless-stopped
+
+    # --- hardening -------------------------------------------------------
+    # The service writes nothing to disk: fixtures are read-only and logs go to
+    # stdout. /tmp must stay writable because Starlette spools multipart uploads
+    # over 1 MB to a temporary file rather than holding them in memory.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

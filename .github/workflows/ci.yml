@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch cancels the first: no point paying for a run
+# whose result is already stale.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------- lint + tests
+  test:
+    name: test (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # one version failing should not hide the other's result
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      # The `real` extra is installed for the TEST SUITE, not for the service.
+      # tests/unit/test_real_adapters.py imports the provider adapters, which import
+      # their SDKs at module scope; without the extra it skips, and the OCR
+      # whitespace-reconstruction coverage (DECISIONS.md D18) is lost -- which is
+      # precisely the bug no mock-based test can catch. No API key or tesseract
+      # binary is needed: those tests exercise pure logic.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,real]"
+
+      - name: Ruff
+        run: ruff check api services adapters config main.py tests testdata scripts
+
+      - name: Pytest
+        run: pytest -q --durations=10
+
+      # Proves the layer rule the hard way: with the SDKs absent, the domain and the
+      # mock path must still be fully exercised. Catches an accidental module-scope
+      # import of a provider SDK into services/ or the mock adapters, which would
+      # otherwise only surface in a minimal production install.
+      - name: Pytest without the provider SDKs
+        run: |
+          pip uninstall -y openai pytesseract pillow
+          pytest -q -rs
+
+  # ------------------------------------------------------- build and run the image
+  docker:
+    name: docker build + live smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        run: docker compose build
+
+      - name: Report image size
+        run: docker images medscribe:local --format '{{.Repository}}:{{.Tag}} {{.Size}}'
+
+      # The central claim of DECISIONS.md D4: the default image carries no provider
+      # SDK and no model weights, which is what makes it work offline.
+      - name: Assert the image ships no provider SDK
+        run: |
+          docker run --rm medscribe:local python - <<'PY'
+          import importlib.util as u
+          present = [m for m in ("openai", "pytesseract", "PIL", "numpy", "torch")
+                     if u.find_spec(m)]
+          assert not present, f"provider SDKs leaked into the image: {present}"
+          print("no provider SDKs in the image")
+          PY
+
+      - name: Assert it runs unprivileged
+        run: |
+          uid=$(docker run --rm medscribe:local id -u)
+          test "$uid" != "0" || { echo "container runs as root"; exit 1; }
+          echo "runs as uid $uid"
+
+      - name: Start
+        run: docker compose up -d
+
+      - name: Wait for healthy
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' \
+                     "$(docker compose ps -q api)" 2>/dev/null || echo starting)
+            [ "$status" = "healthy" ] && { echo "healthy after ~$((i*2))s"; exit 0; }
+            sleep 2
+          done
+          echo "never became healthy"; docker compose logs api; exit 1
+
+      # "Run the code", not just build it: real requests against the live container,
+      # asserting the documented contract rather than merely a 200.
+      - name: Smoke test the live endpoints
+        run: |
+          set -euo pipefail
+          base=http://127.0.0.1:8000
+
+          echo "--- /health"
+          curl -fsS "$base/health" | tee /tmp/health.json
+          grep -q '"adapter_mode":"mock"' /tmp/health.json
+
+          echo "--- transcribe (Bengali fixture)"
+          curl -fsS -X POST "$base/api/v1/transcribe" \
+            -F "file=@testdata/transcription/audio/bn_prescription.wav;type=audio/wav" \
+            -F "language=bn" | tee /tmp/tx.json
+          grep -q '"detected_language":"bn"' /tmp/tx.json
+          grep -q '"speech_detected":true' /tmp/tx.json
+
+          echo "--- transcribe (ambient noise: hallucination must be suppressed)"
+          curl -fsS -X POST "$base/api/v1/transcribe" \
+            -F "file=@testdata/transcription/audio/ambient_noise.wav;type=audio/wav" \
+            | tee /tmp/noise.json
+          grep -q '"speech_detected":false' /tmp/noise.json
+          grep -q '"transcript":""' /tmp/noise.json
+          if grep -q 'Thank you' /tmp/noise.json; then
+            echo "FAIL: hallucinated transcript reached the client"; exit 1
+          fi
+
+          echo "--- extract (CBC report)"
+          curl -fsS -X POST "$base/api/v1/documents/extract" \
+            -F "file=@testdata/ocr/images/cbc_report.png;type=image/png" > /tmp/cbc.json
+          python -c "
+          import json
+          d = json.load(open('/tmp/cbc.json'))
+          assert len(d['results']) == 11, len(d['results'])
+          hb = next(r for r in d['results'] if r['test_name'] == 'Haemoglobin')
+          assert hb['unit'] == 'g/dL', hb['unit']
+          assert hb['flag'] == 'low', hb['flag']
+          assert hb['raw_line'] == 'Haemoglobin          11.2        g/dl          13.0 - 17.0'
+          print('CBC contract holds, raw_line verbatim')
+          "
+
+          echo "--- extract (receipt: must be refused, not guessed at)"
+          code=$(curl -s -o /tmp/receipt.json -w '%{http_code}' -X POST \
+            "$base/api/v1/documents/extract" \
+            -F "file=@testdata/ocr/images/non_lab_receipt.png;type=image/png")
+          test "$code" = "422" || { echo "expected 422, got $code"; exit 1; }
+          grep -q '"code":"not_a_lab_report"' /tmp/receipt.json
+          if grep -q 'Basmati' /tmp/receipt.json; then
+            echo "FAIL: receipt contents leaked into the response"; exit 1
+          fi
+
+          echo "--- oversized upload must be refused with 413"
+          head -c 30000000 /dev/zero > /tmp/big.wav
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            "$base/api/v1/transcribe" -F "file=@/tmp/big.wav;type=audio/wav")
+          test "$code" = "413" || { echo "expected 413, got $code"; exit 1; }
+
+          echo "all smoke tests passed"
+
+      - name: Container logs
+        if: always()
+        run: docker compose logs --no-log-prefix api
+
+      - name: Stop
+        if: always()
+        run: docker compose down -v

@@ -1,0 +1,23 @@
+{
+  "fixture": "ambient_noise",
+  "description": "The dangerous case, and the reason no_speech_probability exists as a separate threshold from the RMS floor. This is a room-noise recording containing no speech, but Whisper has emitted a fluent, confident, entirely invented sentence -- a well-documented failure mode on non-speech input. The text is NOT empty, so a service that only checked for an empty transcript would happily return a hallucination as a clinical dictation. Both segments carry no_speech_probability above the 0.6 default, so the service must discard them and report speech_detected=false.",
+  "provider": "mock-whisper",
+  "text": "Thank you. Thanks for watching!",
+  "detected_language": "en",
+  "duration_seconds": 6.5,
+  "no_speech_probability": 0.883,
+  "segments": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 3.2,
+      "text": "Thank you.",
+      "no_speech_probability": 0.871
+    },
+    {
+      "start_seconds": 3.2,
+      "end_seconds": 6.5,
+      "text": "Thanks for watching!",
+      "no_speech_probability": 0.902
+    }
+  ]
+}

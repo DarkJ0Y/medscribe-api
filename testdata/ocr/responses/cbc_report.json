@@ -1,0 +1,32 @@
+{
+  "fixture": "cbc_report",
+  "description": "Full CBC report, the primary happy path. Deliberately carries every awkward value form named in the brief: a comma-grouped thousand (12,500), times-ten-to-the-power notation in both the value and the reference column (1.8 x 10^5), a one-sided reference bound (< 15), a one-sided value bound (<0.5), leading-zero percentages (06), and plain ranges. Also includes low/high/normal cases so flag derivation has something to prove: Haemoglobin 11.2 is below 13.0-17.0, WBC 12,500 is above 4,000-11,000, Lymphocytes 24 sits inside 20-45.",
+  "provider": "mock-tesseract",
+  "mean_confidence": 88.7,
+  "lines": [
+    { "line_number": 1, "text": "POPULAR DIAGNOSTIC CENTRE LTD.", "confidence": 95.4 },
+    { "line_number": 2, "text": "House 16, Road 2, Dhanmondi, Dhaka-1205", "confidence": 91.2 },
+    { "line_number": 3, "text": "Phone: +880 2 9661491", "confidence": 89.6 },
+    { "line_number": 4, "text": "Patient Name : MD. RAFIQUL ISLAM", "confidence": 93.8 },
+    { "line_number": 5, "text": "Age/Sex : 45 Y / Male", "confidence": 92.1 },
+    { "line_number": 6, "text": "Reference No : PDC-2024-0098871", "confidence": 90.3 },
+    { "line_number": 7, "text": "Ref. By : Dr. Shahana Begum, MBBS", "confidence": 87.4 },
+    { "line_number": 8, "text": "Collection Date : 12/03/2024 09:15 AM", "confidence": 90.9 },
+    { "line_number": 9, "text": "Report Date : 12/03/2024", "confidence": 94.2 },
+    { "line_number": 10, "text": "COMPLETE BLOOD COUNT (CBC)", "confidence": 96.1 },
+    { "line_number": 11, "text": "Test Name            Result      Unit          Reference Range", "confidence": 88.2 },
+    { "line_number": 12, "text": "Haemoglobin          11.2        g/dl          13.0 - 17.0", "confidence": 91.7 },
+    { "line_number": 13, "text": "Total WBC Count      12,500      /cumm         4,000 - 11,000", "confidence": 89.4 },
+    { "line_number": 14, "text": "Platelet Count       1.8 x 10^5  /cumm         1.5 - 4.5 x 10^5", "confidence": 82.6 },
+    { "line_number": 15, "text": "ESR                  32          mm in 1st hr  < 15", "confidence": 85.9 },
+    { "line_number": 16, "text": "Neutrophils          68          %             40 - 75", "confidence": 92.8 },
+    { "line_number": 17, "text": "Lymphocytes          24          %             20 - 45", "confidence": 93.1 },
+    { "line_number": 18, "text": "Monocytes            06          %             02 - 10", "confidence": 90.5 },
+    { "line_number": 19, "text": "Eosinophils          02          %             01 - 06", "confidence": 89.9 },
+    { "line_number": 20, "text": "RBC Count            4.2         x10^6/uL      4.5 - 5.5", "confidence": 86.3 },
+    { "line_number": 21, "text": "MCV                  82.4        fL            83 - 101", "confidence": 88.8 },
+    { "line_number": 22, "text": "CRP                  <0.5        mg/L          < 6.0", "confidence": 84.1 },
+    { "line_number": 23, "text": "Comments: Mild anaemia with leucocytosis. Suggest clinical correlation.", "confidence": 80.7 },
+    { "line_number": 24, "text": "Verified by: Dr. A. K. Azad, MD (Pathology)", "confidence": 86.5 }
+  ]
+}

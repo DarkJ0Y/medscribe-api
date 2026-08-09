@@ -1,0 +1,7 @@
+{
+  "fixture": "blank_page",
+  "description": "An unreadable image -- blank, black, or hopelessly out of focus. The engine recognised nothing, so lines is empty and mean_confidence is null. Per the OCRPort contract this is DATA, not a provider failure: the adapter returns an empty result rather than raising, and the service is what turns it into an unreadable_image error. Keeping that decision in the service means it is made once, not once per OCR engine.",
+  "provider": "mock-tesseract",
+  "mean_confidence": null,
+  "lines": []
+}
