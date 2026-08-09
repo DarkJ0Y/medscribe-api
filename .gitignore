@@ -45,6 +45,14 @@ models/
 testdata/audio/*.wav
 testdata/documents/*.png
 scripts/.cache/
+# The ground-truth JSON is untracked too, not just the media. It is *derived third
+# party data*: transcripts from a CC-BY-4.0 corpus and records from a dataset that
+# declares no licence at all. Regenerating it locally is unambiguously fine;
+# republishing it from this repository is not, and the collector script reproduces it
+# exactly (pinned dataset revisions, deterministic selection, per-file sha256).
+# See "Data sources and attribution" in README.md.
+testdata/audio/audio_ground_truth.json
+testdata/documents/doc_ground_truth.json
 
 # --- os / editor --------------------------------------------------------
 .DS_Store
