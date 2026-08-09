@@ -1,5 +1,8 @@
 # medscribe
 
+[![CI](https://github.com/DarkJ0Y/medscribe-api/actions/workflows/ci.yml/badge.svg)](https://github.com/DarkJ0Y/medscribe-api/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](pyproject.toml)
+
 FastAPI service for Bengali/English speech transcription and structured medical
 lab-report extraction, built on a strict three-layer architecture.
 
