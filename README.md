@@ -20,41 +20,63 @@ Two design commitments run through the whole codebase:
 
 ## Quick start
 
+Everything below works on a clean clone. No `.env`, no API key, no model
+downloads, no outbound network access at runtime.
+
+### Option A — Docker (nothing to install but Docker)
+
 ```bash
+git clone https://github.com/DarkJ0Y/medscribe-api.git
+cd medscribe-api
 docker compose up
 ```
 
-That is the whole thing. No `.env`, no API key, no model downloads, no outbound
-network access at runtime. Then:
+Wait for `healthy` (about 8 seconds), then:
 
 ```bash
 curl -s localhost:8000/health
+
+# Bengali speech
 curl -s -X POST localhost:8000/api/v1/transcribe \
   -F "file=@testdata/transcription/audio/bn_prescription.wav;type=audio/wav" \
   -F "language=bn"
+
+# Clinical dictation, with a word error rate in the response
+curl -s -X POST localhost:8000/api/v1/transcribe \
+  -F "file=@testdata/transcription/audio/en_clinical_hypertension.wav;type=audio/wav" \
+  -F "language=en"
+
+# Lab report -> structured results
 curl -s -X POST localhost:8000/api/v1/documents/extract \
   -F "file=@testdata/ocr/images/cbc_report.png;type=image/png"
+
+# A receipt is refused rather than guessed at (HTTP 422)
+curl -s -X POST localhost:8000/api/v1/documents/extract \
+  -F "file=@testdata/ocr/images/non_lab_receipt.png;type=image/png"
 ```
 
-Interactive docs at <http://localhost:8000/docs>.
+Interactive docs at <http://localhost:8000/docs>. Stop with `docker compose down`.
 
-### Locally, without Docker
+### Option B — Python, no Docker
 
 ```bash
+git clone https://github.com/DarkJ0Y/medscribe-api.git
+cd medscribe-api
 python -m venv .venv
-.venv\Scripts\Activate.ps1          # PowerShell; bash: source .venv/bin/activate
-pip install -e ".[dev,real]"         # see note below
-pytest                               # 256 tests, ~2.5s
-uvicorn main:app --reload
+
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# macOS / Linux:
+source .venv/bin/activate
+
+pip install -e ".[dev,real]"
+
+pytest                            # 294 tests, ~3s
+python scripts/evaluate_wer.py    # the WER table below
+uvicorn main:app --reload         # then use the curl commands above
 ```
 
-`[real]` is included **for the test suite, not for running the service**. The
-provider-adapter tests import `adapters/ocr/tesseract.py` and
-`adapters/transcription/whisper_api.py`, which import their SDKs at module scope.
-With only `[dev]` installed, `tests/unit/test_real_adapters.py` skips and the other
-255 tests still pass — but you lose the coverage of the OCR whitespace
-reconstruction (D18), which is the one thing mocks cannot check. No API key and no
-`tesseract` binary are needed either way; those tests exercise pure logic.
+`pytest` and `evaluate_wer.py` both need **no** running server and **no** API key.
 
 ---
 
@@ -64,15 +86,15 @@ Measured on the built container, not asserted:
 
 | Claim | Result |
 | --- | --- |
-| Image size | **279 MB** |
-| Healthy after `docker compose up` | **~6 s** |
+| Image size | **187 MB** (CI, native Linux; Docker Desktop reports ~279 MB) |
+| Healthy after `docker compose up` | **~6–8 s** |
 | Provider SDKs in the default image | `openai`, `pytesseract`, `PIL`, `numpy`, `torch` — **all absent** |
 | `tesseract` binary in the default image | **absent** |
 | Runs as | `uid=1001(app)`, non-root |
 | Root filesystem | **read-only** (`/app` writes denied; `/tmp` is tmpfs) |
 | Works with **no network** | outbound unreachable → both endpoints still return correct results |
 | 4.6 MB upload under a read-only rootfs | **200** (spools to tmpfs past Starlette's 1 MB threshold) |
-| Test suite | **256 passed**, ruff clean |
+| Test suite | **294 passed**, ruff clean |
 
 ---
 
@@ -90,9 +112,13 @@ Multipart: `file` (wav, mp3, m4a, mp4, ogg, oga, flac, webm — up to 25 MiB) an
   "duration_seconds": 8.64,
   "provider": "mock-whisper",
   "speech_detected": true,
-  "warnings": []
+  "warnings": [],
+  "word_error_rate": null
 }
 ```
+
+`word_error_rate` is `null` here — and for every live transcription. See
+[Word error rate](#word-error-rate).
 
 Silence or ambient noise → still `200`:
 
@@ -106,7 +132,8 @@ Silence or ambient noise → still `200`:
   "warnings": [
     "2 segment(s) were discarded as non-speech (no_speech_probability above 0.6).",
     "No speech detected: provider reported no_speech_probability 0.883 above the 0.6 threshold; ..."
-  ]
+  ],
+  "word_error_rate": null
 }
 ```
 
@@ -196,6 +223,77 @@ Branch on `error.code`, not the message or the status. `request_id` is echoed in
 | 502 / 504 | `provider_unavailable` / `provider_timeout` |
 
 ---
+
+## Word error rate
+
+Three clinical-dictation fixtures carry a `reference_transcript`, so the pipeline
+can be scored end to end. Reproduce with one command — no server, no API key:
+
+```bash
+python scripts/evaluate_wer.py
+```
+
+```
+Word error rate  (in-process ASGI)
+========================================================================================
+fixture                           WER    S    D    I  hits  ref  hyp  exact
+----------------------------------------------------------------------------------------
+en_clinical_cardiac            0.0000    0    0    0    26   26   26  yes
+en_clinical_hypertension       0.2692    3    4    0    19   26   22  no
+en_clinical_oncology           0.3077    3    0    5    23   26   31  no
+----------------------------------------------------------------------------------------
+CORPUS (errors / ref words)    0.1923                   15 of 78
+========================================================================================
+```
+
+Corpus WER is total errors over total reference words, not the mean of the three
+rates — averaging rates would weight a 6-word clip like a 600-word one.
+
+**Read the second row carefully.** `en_clinical_hypertension` transcribes *"one
+hundred eighty over one hundred ten"* as **"180 over 110"** and *"intravenous"* as
+*"IV"*. To a clinician that transcript is perfect. It still scores **0.2692**,
+because WER measures transcription, not comprehension. This is deliberate:
+[services/wer.py](services/wer.py) does **not** normalize numerals away, since doing
+so would hide one of the most common real behaviours of modern ASR models. If you
+want those forgiven, put a text normalizer in front of the metric — where you can
+see it — rather than inside it.
+
+`en_clinical_oncology` shows the error class that actually matters clinically:
+*"occult infection"* → *"a cult infection"*, which changes the meaning of the
+sentence. It sits at 0.3077 alongside spelled-out acronyms (`ESR` → `E S R`), and
+WER cannot tell you which of those two is the dangerous one. Note also that
+*"contrast-enhanced"* vs *"contrast enhanced"* scores **no** error — normalization
+treats a hyphen as a word separator, because they really are the same two words.
+
+The score appears in the API response too:
+
+```json
+"word_error_rate": {
+  "wer": 0.2692, "substitutions": 3, "deletions": 4, "insertions": 0,
+  "hits": 19, "reference_words": 26, "hypothesis_words": 22,
+  "errors": 7, "exact_match": false
+}
+```
+
+> **`word_error_rate` is `null` for every live transcription.** Accuracy needs a
+> reference, and a provider asked to transcribe audio does not have one — that is
+> the whole point of the request. It is populated only when replaying a fixture that
+> declares `reference_transcript`, which makes it a regression-testing tool rather
+> than a production monitoring metric.
+
+Two honest caveats about what these numbers mean:
+
+1. Under the default **mock** adapters the transcripts are replayed from
+   `testdata/`, so this measures the *pipeline* — normalization, alignment, segment
+   filtering, serialization — not a speech model. The recorded ASR output in the two
+   imperfect fixtures is **synthetic**, hand-authored to reproduce documented
+   Whisper failure modes. No live model produced it.
+2. Point the harness at a service running with `USE_MOCK_ADAPTERS=false` and the
+   same fixtures become a genuine model evaluation, because then the transcript is
+   the provider's own output:
+   ```bash
+   python scripts/evaluate_wer.py --base-url http://localhost:8000
+   ```
 
 ## Architecture
 
@@ -298,7 +396,7 @@ depends on. Configure another and the adapter logs a warning at startup saying s
 ## Testing
 
 ```bash
-pytest                      # 256 tests  (255 + 1 skip without the [real] extra)
+pytest                      # 294 tests  (293 + 1 skip without the [real] extra)
 pytest -m unit              # domain + adapters
 pytest -m integration       # full ASGI stack
 ruff check api services adapters config main.py tests testdata scripts
@@ -308,7 +406,7 @@ Every push runs the same commands on GitHub Actions across Python 3.11 and 3.12,
 then builds the image, starts the container and smoke-tests the live endpoints —
 see [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
-76 test functions across 11 modules, expanding to 256 parametrized cases. The
+83 test functions across 12 modules, expanding to 294 parametrized cases. The
 suite is **mutation-checked**: invariants are verified by breaking the
 implementation and confirming the tests fail. That found a real hole — adding
 `.strip()` to `raw_line` passed all 255 tests, because no corpus fixture has

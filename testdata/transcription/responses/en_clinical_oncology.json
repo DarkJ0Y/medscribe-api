@@ -1,0 +1,24 @@
+{
+  "fixture": "en_clinical_oncology",
+  "description": "Clinical dictation, occult infection versus lymphoma. The recorded ASR output is SYNTHETIC and carries two more real Whisper failure classes: a clinically dangerous homophone split ('occult' -> 'a cult', which changes the meaning of the sentence entirely) and lab acronyms spelled out letter by letter ('ESR' -> 'E S R', 'CRP' -> 'C R P'). Nothing here came from a live model. Note that 'contrast-enhanced' versus 'contrast enhanced' scores NO error, because WER normalization treats a hyphen as a word separator -- they really are the same two words.",
+  "provider": "mock-whisper",
+  "text": "Persistent fever with unexplained weight loss raises concern for a cult infection or lymphoma. Request complete blood count, E S R, C R P, blood cultures, and contrast enhanced CT imaging.",
+  "reference_transcript": "Persistent fever with unexplained weight loss raises concern for occult infection or lymphoma. Request complete blood count, ESR, CRP, blood cultures, and contrast-enhanced CT imaging.",
+  "detected_language": "en",
+  "duration_seconds": 13.1,
+  "no_speech_probability": 0.009,
+  "segments": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 6.5,
+      "text": "Persistent fever with unexplained weight loss raises concern for a cult infection or lymphoma.",
+      "no_speech_probability": 0.007
+    },
+    {
+      "start_seconds": 6.5,
+      "end_seconds": 13.1,
+      "text": "Request complete blood count, E S R, C R P, blood cultures, and contrast enhanced CT imaging.",
+      "no_speech_probability": 0.012
+    }
+  ]
+}

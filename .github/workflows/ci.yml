@@ -51,6 +51,12 @@ jobs:
       - name: Pytest
         run: pytest -q --durations=10
 
+      # Printed in full so the WER table is visible in the run log, then checked
+      # against pinned baselines. A silent drift in normalization or alignment would
+      # otherwise change the numbers without failing anything.
+      - name: Word error rate
+        run: python scripts/evaluate_wer.py --check
+
       # Proves the layer rule the hard way: with the SDKs absent, the domain and the
       # mock path must still be fully exercised. Catches an accidental module-scope
       # import of a provider SDK into services/ or the mock adapters, which would
@@ -134,6 +140,26 @@ jobs:
           if grep -q 'Thank you' /tmp/noise.json; then
             echo "FAIL: hallucinated transcript reached the client"; exit 1
           fi
+
+          echo "--- transcribe (clinical dictation: WER must be reported)"
+          curl -fsS -X POST "$base/api/v1/transcribe" \
+            -F "file=@testdata/transcription/audio/en_clinical_hypertension.wav;type=audio/wav" \
+            -F "language=en" > /tmp/clin.json
+          python -c "
+          import json
+          d = json.load(open('/tmp/clin.json'))
+          w = d['word_error_rate']
+          assert w is not None, 'a fixture with a reference must be scored'
+          assert abs(w['wer'] - 7/26) < 5e-4, w['wer']
+          assert (w['substitutions'], w['deletions'], w['insertions']) == (3, 4, 0), w
+          assert '180 over 110' in d['transcript']
+          print(f\"WER {w['wer']:.4f} over the live container\")
+          "
+
+          echo "--- transcribe (no reference: WER must be null, never fabricated)"
+          curl -fsS -X POST "$base/api/v1/transcribe" \
+            -F "file=@testdata/transcription/audio/bn_prescription.wav;type=audio/wav" \
+            -F "language=bn" | grep -q '"word_error_rate":null'
 
           echo "--- extract (CBC report)"
           curl -fsS -X POST "$base/api/v1/documents/extract" \

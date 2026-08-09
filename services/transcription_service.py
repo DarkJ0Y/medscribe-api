@@ -29,6 +29,7 @@ import math
 import wave
 from typing import Final
 
+from services import wer
 from services.domain import (
     FilePayload,
     Language,
@@ -39,6 +40,7 @@ from services.domain import (
 )
 from services.ports import TranscriptionPort
 from services.upload_policy import validate_upload
+from services.wer import WordErrorRate
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +131,23 @@ class TranscriptionService:
             provider=raw.provider,
             speech_detected=speech_detected,
             warnings=tuple(warnings),
+            word_error_rate=self._score(raw, transcript),
         )
+
+    def _score(self, raw: RawTranscription, transcript: str) -> WordErrorRate | None:
+        """Word error rate, but only when the adapter supplied a reference.
+
+        Deliberately scored against the *final* transcript rather than the
+        provider's raw text, so the number reflects what the caller actually
+        received -- including any noisy segments this service discarded. If
+        filtering ever removes real speech, WER is where that shows up.
+
+        Silent audio is scored too, and lands at 1.0 (every reference word
+        deleted), which is the truthful reading of "none of it was transcribed".
+        """
+        if raw.reference_transcript is None:
+            return None
+        return wer.compute(raw.reference_transcript, transcript)
 
     def _filter_segments(self, raw: RawTranscription) -> tuple[list[str], int]:
         """Drop segments the provider itself scored as non-speech."""

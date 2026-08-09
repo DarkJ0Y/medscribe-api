@@ -20,6 +20,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+# services.wer imports nothing from this module, so this direction is safe and
+# keeps WordErrorRate visible as part of the domain vocabulary.
+from services.wer import WordErrorRate
+
 # ---------------------------------------------------------------------------
 # Language
 # ---------------------------------------------------------------------------
@@ -128,6 +132,15 @@ class RawTranscription:
     no_speech_probability: float | None = None
     segments: tuple[TranscriptSegment, ...] = ()
 
+    reference_transcript: str | None = None
+    """Known-correct text for this audio, when one exists.
+
+    Only a replay adapter can supply this -- a live provider is being asked to
+    produce the transcript, so by definition it has nothing to compare against.
+    Its presence is what lets the service report a word error rate; its absence is
+    the normal production case.
+    """
+
 
 @dataclass(frozen=True, slots=True)
 class TranscriptionResult:
@@ -139,6 +152,15 @@ class TranscriptionResult:
     provider: str
     speech_detected: bool = True
     warnings: tuple[str, ...] = ()
+
+    word_error_rate: WordErrorRate | None = None
+    """Accuracy against a known reference, when the adapter supplied one.
+
+    ``None`` for every live transcription, because accuracy cannot be measured
+    without a reference. Populated during fixture replay, which is what makes it
+    useful for regression-testing the pipeline rather than for production
+    monitoring.
+    """
 
 
 # ---------------------------------------------------------------------------

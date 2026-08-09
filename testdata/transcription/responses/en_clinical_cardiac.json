@@ -1,0 +1,24 @@
+{
+  "fixture": "en_clinical_cardiac",
+  "description": "Clinical dictation, cardiology. The baseline WER case: the recorded ASR output matches the reference exactly, so this fixture pins WER at 0.0000 and proves the exact-match path. If a future change to normalization or segment filtering starts mangling clean input, this is the fixture that catches it.",
+  "provider": "mock-whisper",
+  "text": "The patient presents with progressive bilateral leg swelling and exertional dyspnea. Consider congestive heart failure or nephrotic syndrome, and order an echocardiogram with urine protein analysis.",
+  "reference_transcript": "The patient presents with progressive bilateral leg swelling and exertional dyspnea. Consider congestive heart failure or nephrotic syndrome, and order an echocardiogram with urine protein analysis.",
+  "detected_language": "en",
+  "duration_seconds": 13.4,
+  "no_speech_probability": 0.006,
+  "segments": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 6.9,
+      "text": "The patient presents with progressive bilateral leg swelling and exertional dyspnea.",
+      "no_speech_probability": 0.005
+    },
+    {
+      "start_seconds": 6.9,
+      "end_seconds": 13.4,
+      "text": "Consider congestive heart failure or nephrotic syndrome, and order an echocardiogram with urine protein analysis.",
+      "no_speech_probability": 0.008
+    }
+  ]
+}

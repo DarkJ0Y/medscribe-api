@@ -18,6 +18,16 @@ RESPONSE_KEYS = {
     "provider",
     "speech_detected",
     "warnings",
+    "word_error_rate",
+}
+
+#: Expected WER per clinical fixture, pinned so a regression in normalization,
+#: alignment or segment filtering fails loudly rather than drifting quietly.
+#: (wer, substitutions, deletions, insertions, reference_words)
+CLINICAL_WER = {
+    "en_clinical_cardiac": (0.0, 0, 0, 0, 26),
+    "en_clinical_hypertension": (7 / 26, 3, 4, 0, 26),
+    "en_clinical_oncology": (8 / 26, 3, 0, 5, 26),
 }
 
 
@@ -164,6 +174,92 @@ def test_rejects_an_unsupported_language_value(client: TestClient, audio_bytes: 
     body = response.json()
     assert body["error"]["code"] == "request_validation_failed"
     assert any("language" in str(field["location"]) for field in body["error"]["details"]["fields"])
+
+
+@pytest.mark.parametrize("fixture", sorted(CLINICAL_WER))
+def test_reports_word_error_rate_for_clinical_dictation(
+    client: TestClient, audio_bytes: Any, transcription_fixture: Any, fixture: str
+) -> None:
+    response = client.post(
+        ENDPOINT,
+        files={"file": (f"{fixture}.wav", audio_bytes(fixture), "audio/wav")},
+        data={"language": "en"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["speech_detected"] is True
+    assert body["detected_language"] == "en"
+
+    expected_wer, subs, dels, ins, reference_words = CLINICAL_WER[fixture]
+    score = body["word_error_rate"]
+    assert score is not None, "a fixture with a reference_transcript must be scored"
+    assert score["wer"] == pytest.approx(expected_wer, abs=5e-5)
+    assert score["substitutions"] == subs
+    assert score["deletions"] == dels
+    assert score["insertions"] == ins
+    assert score["reference_words"] == reference_words
+    assert score["errors"] == subs + dels + ins
+    assert score["exact_match"] is (subs + dels + ins == 0)
+
+    # The score must describe the transcript the caller actually received, so the
+    # reference in the fixture has to be the one that was used.
+    assert transcription_fixture(fixture)["reference_transcript"]
+
+
+def test_clean_dictation_scores_a_perfect_wer(client: TestClient, audio_bytes: Any) -> None:
+    """The baseline. If normalization or segment filtering starts mangling clean
+    input, this is the case that catches it before the noisy ones muddy the signal."""
+    response = client.post(
+        ENDPOINT,
+        files={
+            "file": ("en_clinical_cardiac.wav", audio_bytes("en_clinical_cardiac"), "audio/wav")
+        },
+    )
+
+    score = response.json()["word_error_rate"]
+    assert score["wer"] == 0.0
+    assert score["exact_match"] is True
+    assert score["hits"] == score["reference_words"] == 26
+
+
+def test_semantically_perfect_numerals_still_score_errors(
+    client: TestClient, audio_bytes: Any
+) -> None:
+    """"180 over 110" for "one hundred eighty over one hundred ten" reads perfectly to
+    a human and is still a transcription error. WER measures transcription, not
+    comprehension, and this fixture is here to keep that explicit rather than
+    surprising."""
+    response = client.post(
+        ENDPOINT,
+        files={
+            "file": (
+                "en_clinical_hypertension.wav",
+                audio_bytes("en_clinical_hypertension"),
+                "audio/wav",
+            )
+        },
+    )
+
+    body = response.json()
+    assert "180 over 110" in body["transcript"]
+    assert body["word_error_rate"]["wer"] > 0.25
+    # Every error is a numeral or abbreviation difference; none is a lost word.
+    assert body["word_error_rate"]["insertions"] == 0
+
+
+@pytest.mark.parametrize("fixture", ["bn_prescription", "en_lab_query", "silence"])
+def test_word_error_rate_is_null_without_a_reference(
+    client: TestClient, audio_bytes: Any, fixture: str
+) -> None:
+    """The production case. A live provider is asked to produce the transcript, so it
+    has nothing to score against -- claiming a WER there would be fabrication."""
+    response = client.post(
+        ENDPOINT, files={"file": (f"{fixture}.wav", audio_bytes(fixture), "audio/wav")}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["word_error_rate"] is None
 
 
 def test_rejects_an_oversized_upload_before_reading_the_body(

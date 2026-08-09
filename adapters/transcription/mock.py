@@ -54,6 +54,11 @@ class MockTranscriptionAdapter:
             duration_seconds=payload.get("duration_seconds"),
             no_speech_probability=payload.get("no_speech_probability"),
             segments=self._parse_segments(payload.get("segments") or []),
+            # Only a replay adapter can know the correct answer. Forwarding it is
+            # what lets the service report a word error rate; the real adapters
+            # leave this None, because a live provider has nothing to compare
+            # against.
+            reference_transcript=payload.get("reference_transcript"),
         )
 
     def _parse_segments(self, raw: list[dict[str, Any]]) -> tuple[TranscriptSegment, ...]:

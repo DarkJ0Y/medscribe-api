@@ -1,0 +1,24 @@
+{
+  "fixture": "en_clinical_hypertension",
+  "description": "Clinical dictation, hypertensive urgency. The recorded ASR output is SYNTHETIC and carries two deliberately injected error classes, both of which real Whisper models produce constantly on clinical dictation: spoken numbers emitted as numerals ('one hundred eighty' -> '180', 'one hundred ten' -> '110') and a drug-route term abbreviated ('intravenous' -> 'IV'). Nothing here came from a live model. The point is that this transcript is arguably PERFECT for a human reader and still scores a substantial WER, because WER measures transcription rather than comprehension -- see the note in services/wer.py about why numerals are deliberately not normalized away.",
+  "provider": "mock-whisper",
+  "text": "Blood pressure is 180 over 110 with persistent occipital headache. Evaluate for hypertensive urgency and perform fundoscopy before initiating IV antihypertensive therapy.",
+  "reference_transcript": "Blood pressure is one hundred eighty over one hundred ten with persistent occipital headache. Evaluate for hypertensive urgency and perform fundoscopy before initiating intravenous antihypertensive therapy.",
+  "detected_language": "en",
+  "duration_seconds": 12.8,
+  "no_speech_probability": 0.011,
+  "segments": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 6.2,
+      "text": "Blood pressure is 180 over 110 with persistent occipital headache.",
+      "no_speech_probability": 0.009
+    },
+    {
+      "start_seconds": 6.2,
+      "end_seconds": 12.8,
+      "text": "Evaluate for hypertensive urgency and perform fundoscopy before initiating IV antihypertensive therapy.",
+      "no_speech_probability": 0.014
+    }
+  ]
+}

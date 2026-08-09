@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Replay index for MockTranscriptionAdapter. Resolution order is: sha256 of the uploaded bytes, then the filename stem, then filename keyword tokens, then the per-language default, then default_fixture. sha256 values are filled in by testdata/generate_media.py and must be refreshed if the audio is regenerated.",
+  "description": "Replay index for MockTranscriptionAdapter. Resolution order is: sha256 of the uploaded bytes, then the filename stem, then filename keyword tokens, then the per-language default, then default_fixture. sha256 values are filled in by testdata/generate_media.py and must be refreshed if the audio is regenerated. Fixtures carrying reference_transcript additionally yield a word error rate.",
   "provider": "mock-whisper",
   "default_fixture": "en_lab_query",
   "default_by_language": {
@@ -60,6 +60,40 @@
         "ambient",
         "hiss",
         "hallucination"
+      ]
+    },
+    "en_clinical_cardiac": {
+      "response": "responses/en_clinical_cardiac.json",
+      "media": "audio/en_clinical_cardiac.wav",
+      "sha256": "9fefa99ee8e3b4de19e1030ebcef76e66b1fb867739da47dbafff3844753e1e3",
+      "keywords": [
+        "clinical",
+        "cardiac",
+        "cardiology",
+        "dyspnea",
+        "echocardiogram"
+      ]
+    },
+    "en_clinical_hypertension": {
+      "response": "responses/en_clinical_hypertension.json",
+      "media": "audio/en_clinical_hypertension.wav",
+      "sha256": "d09a8b2ebad3a4841f57330d87c8d753698171f018e6aa5eb8f51b955dee9687",
+      "keywords": [
+        "clinical",
+        "hypertension",
+        "hypertensive",
+        "fundoscopy"
+      ]
+    },
+    "en_clinical_oncology": {
+      "response": "responses/en_clinical_oncology.json",
+      "media": "audio/en_clinical_oncology.wav",
+      "sha256": "6e91e6f60935df529c04c47743cf4d99a3d885522ad261085886974d5d57c19f",
+      "keywords": [
+        "clinical",
+        "oncology",
+        "lymphoma",
+        "occult"
       ]
     }
   }

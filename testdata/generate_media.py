@@ -203,6 +203,12 @@ AUDIO: tuple[tuple[str, float, str, float, int], ...] = (
     ("bn_en_code_switch", 9.41, "speech", 0.150, 1003),
     ("silence", 4.00, "silence", 0.000, 1004),
     ("ambient_noise", 6.50, "noise", 0.020, 1005),
+    # Clinical dictation fixtures. Durations mirror duration_seconds in the
+    # matching responses/*.json, so a probe of the container agrees with what
+    # the fixture claims.
+    ("en_clinical_cardiac", 13.40, "speech", 0.150, 1006),
+    ("en_clinical_hypertension", 12.80, "speech", 0.150, 1007),
+    ("en_clinical_oncology", 13.10, "speech", 0.150, 1008),
 )
 
 _GENERATORS = {"speech": _speech_like, "noise": _noise, "silence": _silence}

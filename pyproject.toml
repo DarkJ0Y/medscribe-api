@@ -72,6 +72,10 @@ select = ["E", "F", "I", "B", "UP", "SIM", "TID"]
 "api/*" = ["TID251"]
 "main.py" = ["TID251"]
 "tests/*" = ["TID251", "B011"]
+# scripts/ is developer tooling, not one of the three layers. evaluate_wer.py drives
+# the app through Starlette's test client so it can score fixtures without a running
+# server, which is a legitimate use of the framework outside api/.
+"scripts/*" = ["TID251"]
 
 [tool.mypy]
 python_version = "3.11"
