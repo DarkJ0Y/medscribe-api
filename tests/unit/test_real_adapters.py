@@ -19,12 +19,94 @@ pytest.importorskip("pytesseract", reason="requires the 'real' extra")
 pytest.importorskip("PIL", reason="requires the 'real' extra")
 pytest.importorskip("openai", reason="requires the 'real' extra")
 
-from adapters.ocr.tesseract import reconstruct_lines  # noqa: E402
+import pytesseract  # noqa: E402
+
+from adapters.ocr.tesseract import RealOCRAdapter, reconstruct_lines  # noqa: E402
 from adapters.transcription.whisper_api import to_raw_transcription  # noqa: E402
-from services.domain import OcrLine  # noqa: E402
+from services.domain import FilePayload, OcrLine  # noqa: E402
+from services.errors import (  # noqa: E402
+    DomainError,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
+)
 from services.report_parser import parse_report  # noqa: E402
 
 pytestmark = pytest.mark.unit
+
+
+# ------------------------------------------- exception handler ordering
+def test_tesseract_exception_hierarchy_is_as_the_adapter_assumes() -> None:
+    """The adapter's `except` ordering depends on these two facts.
+
+    If pytesseract ever re-parents either exception, the ordering in
+    ``extract_lines`` becomes wrong again and this test says so directly, rather
+    than leaving it to be inferred from a misleading error message.
+    """
+    assert issubclass(pytesseract.TesseractError, RuntimeError)
+    assert issubclass(pytesseract.TesseractNotFoundError, OSError)
+
+
+@pytest.mark.parametrize(
+    ("raised", "expected_error", "expected_fragment", "expects_languages"),
+    [
+        (
+            pytesseract.TesseractError(1, "bad language pack"),
+            ProviderUnavailableError,
+            "Tesseract returned an error",
+            True,
+        ),
+        (
+            RuntimeError("Tesseract process timeout"),
+            ProviderTimeoutError,
+            "timed out",
+            False,
+        ),
+        (
+            RuntimeError("something else entirely"),
+            ProviderUnavailableError,
+            "OCR failed",
+            False,
+        ),
+        (
+            # Takes no arguments: it composes its own message from tesseract_cmd.
+            pytesseract.TesseractNotFoundError(),
+            ProviderUnavailableError,
+            "tesseract-ocr",
+            False,
+        ),
+    ],
+)
+async def test_each_tesseract_failure_reaches_its_own_handler(
+    monkeypatch: pytest.MonkeyPatch,
+    raised: Exception,
+    expected_error: type[DomainError],
+    expected_fragment: str,
+    expects_languages: bool,
+) -> None:
+    """Guards a bug the error *code* alone could not reveal.
+
+    ``TesseractError`` derives from ``RuntimeError``, so an ``except RuntimeError``
+    clause placed ahead of it shadows it completely. Both branches raise
+    ProviderUnavailableError, so an assertion on ``exc.code`` passes either way --
+    which is exactly why the dead branch survived the original test. These
+    assertions check the message and the ``languages`` detail, which only the
+    correct handler produces.
+    """
+    adapter = RealOCRAdapter(languages="eng+ben", timeout_seconds=5.0)
+
+    def explode(*args: object, **kwargs: object) -> object:
+        raise raised
+
+    monkeypatch.setattr(pytesseract, "image_to_data", explode)
+    # Bypass image decoding so only the handler ordering is under test.
+    monkeypatch.setattr("adapters.ocr.tesseract._decode_image", lambda image: object())
+
+    payload = FilePayload(data=b"\x89PNG", filename="scan.png", content_type="image/png")
+    with pytest.raises(expected_error) as caught:
+        await adapter.extract_lines(payload)
+
+    assert expected_fragment in str(caught.value)
+    assert ("languages" in caught.value.details) is expects_languages
 
 # --------------------------------- tesseract whitespace reconstruction
 def _word_boxes(rows: list[list[tuple[str, int, int]]]) -> dict[str, list[Any]]:

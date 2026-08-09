@@ -96,11 +96,24 @@ class RealOCRAdapter:
                 config=_TESSERACT_CONFIG,
                 timeout=self._timeout,
             )
+        # ORDER IS LOAD-BEARING, most specific first. pytesseract.TesseractError
+        # derives from RuntimeError and TesseractNotFoundError derives from OSError,
+        # so a base class listed earlier shadows its subclass entirely. This block was
+        # previously ordered with `except RuntimeError` ahead of TesseractError, which
+        # made the TesseractError branch dead code: real Tesseract failures reported
+        # the generic "OCR failed" message and dropped the `languages` detail. Both
+        # produced provider_unavailable, so the error code alone could not reveal it.
         except pytesseract.TesseractNotFoundError as exc:
             raise ProviderUnavailableError(
                 "The tesseract binary was not found. Install tesseract-ocr, or set "
                 "TESSERACT_CMD to its full path.",
                 provider=self.provider_name,
+            ) from exc
+        except pytesseract.TesseractError as exc:
+            raise ProviderUnavailableError(
+                f"Tesseract returned an error: {exc}",
+                provider=self.provider_name,
+                details={"languages": self._languages},
             ) from exc
         except RuntimeError as exc:
             # pytesseract signals its own timeout as a bare RuntimeError.
@@ -112,12 +125,6 @@ class RealOCRAdapter:
                 ) from exc
             raise ProviderUnavailableError(
                 f"OCR failed: {exc}", provider=self.provider_name
-            ) from exc
-        except pytesseract.TesseractError as exc:
-            raise ProviderUnavailableError(
-                f"Tesseract returned an error: {exc}",
-                provider=self.provider_name,
-                details={"languages": self._languages},
             ) from exc
         except OSError as exc:
             raise ProviderUnavailableError(

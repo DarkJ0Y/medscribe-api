@@ -71,7 +71,7 @@ source .venv/bin/activate
 
 pip install -e ".[dev,real]"
 
-pytest                            # 294 tests, ~3s
+pytest                            # 299 tests, ~3s
 python scripts/evaluate_wer.py    # the WER table below
 uvicorn main:app --reload         # then use the curl commands above
 ```
@@ -94,7 +94,7 @@ Measured on the built container, not asserted:
 | Root filesystem | **read-only** (`/app` writes denied; `/tmp` is tmpfs) |
 | Works with **no network** | outbound unreachable → both endpoints still return correct results |
 | 4.6 MB upload under a read-only rootfs | **200** (spools to tmpfs past Starlette's 1 MB threshold) |
-| Test suite | **294 passed**, ruff clean |
+| Test suite | **299 passed**, ruff clean, `mypy --strict` clean |
 
 ---
 
@@ -396,17 +396,23 @@ depends on. Configure another and the adapter logs a warning at startup saying s
 ## Testing
 
 ```bash
-pytest                      # 294 tests  (293 + 1 skip without the [real] extra)
+pytest                      # 299 tests  (298 + 1 skip without the [real] extra)
 pytest -m unit              # domain + adapters
 pytest -m integration       # full ASGI stack
-ruff check api services adapters config main.py tests testdata scripts
+ruff check api services adapters config main.py tests testdata scripts stubs
+mypy --strict api services adapters config main.py tests scripts testdata
 ```
 
-Every push runs the same commands on GitHub Actions across Python 3.11 and 3.12,
-then builds the image, starts the container and smoke-tests the live endpoints —
-see [.github/workflows/ci.yml](.github/workflows/ci.yml).
+`mypy --strict` covers the whole tree, including tests and scripts. The only
+untyped dependency is pytesseract, for which [stubs/pytesseract/](stubs/pytesseract/)
+supplies hand-written types — chosen over `ignore_missing_imports`, which would
+have turned the module into `Any` and hidden every call into it.
 
-83 test functions across 12 modules, expanding to 294 parametrized cases. The
+Every push runs all of these on GitHub Actions across Python 3.11 and 3.12, then
+builds the image, starts the container and smoke-tests the live endpoints — see
+[.github/workflows/ci.yml](.github/workflows/ci.yml).
+
+90 test functions across 12 modules, expanding to 299 parametrized cases. The
 suite is **mutation-checked**: invariants are verified by breaking the
 implementation and confirming the tests fail. That found a real hole — adding
 `.strip()` to `raw_line` passed all 255 tests, because no corpus fixture has

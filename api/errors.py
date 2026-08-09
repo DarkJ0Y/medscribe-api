@@ -92,7 +92,7 @@ def status_for(exc: DomainError) -> int:
     """Resolve the status code for ``exc``, walking its MRO."""
     for klass in type(exc).__mro__:
         if klass in _STATUS_BY_TYPE:
-            return _STATUS_BY_TYPE[klass]  # type: ignore[index]
+            return _STATUS_BY_TYPE[klass]
     return INTERNAL_ERROR
 
 

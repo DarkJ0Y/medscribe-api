@@ -43,6 +43,7 @@ import math
 import struct
 import wave
 import zlib
+from collections.abc import Iterator
 from pathlib import Path
 
 TESTDATA = Path(__file__).resolve().parent
@@ -54,7 +55,7 @@ SAMPLE_WIDTH = 2  # 16-bit signed PCM
 # ---------------------------------------------------------------------------
 # Deterministic pseudo-randomness
 # ---------------------------------------------------------------------------
-def _lcg(seed: int):
+def _lcg(seed: int) -> Iterator[float]:
     """Numerical Recipes LCG -- fixed output across Python versions.
 
     ``random.Random`` would also be seedable, but its algorithm is an

@@ -52,6 +52,14 @@ markers = [
     "integration: exercises the ASGI app end to end",
 ]
 
+# soundfile (used only by scripts/download_testdata.py for FLAC -> WAV) ships no
+# py.typed and has no stub package. Unlike pytesseract, a faithful stub would have to
+# describe numpy array returns, which is disproportionate for a single call site in a
+# developer script -- so this one module is allowed to be Any.
+[[tool.mypy.overrides]]
+module = ["soundfile"]
+ignore_missing_imports = true
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100
@@ -81,3 +89,10 @@ select = ["E", "F", "I", "B", "UP", "SIM", "TID"]
 python_version = "3.11"
 strict = true
 warn_unreachable = true
+# Hand-written stubs for pytesseract, the only untyped dependency in the tree.
+# Everything else (fastapi, pydantic, starlette, openai, Pillow) ships py.typed.
+# Preferred over ignore_missing_imports, which would make the whole module Any and
+# disable checking of every call into it -- including the exception hierarchy whose
+# real shape is what caught the unreachable `except` clause in the OCR adapter.
+mypy_path = "stubs"
+plugins = ["pydantic.mypy"]

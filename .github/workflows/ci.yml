@@ -46,7 +46,17 @@ jobs:
           pip install -e ".[dev,real]"
 
       - name: Ruff
-        run: ruff check api services adapters config main.py tests testdata scripts
+        run: ruff check api services adapters config main.py tests testdata scripts stubs
+
+      # --strict is passed explicitly even though pyproject already sets strict = true,
+      # so the gate is visible in the workflow and cannot be weakened by editing the
+      # config alone. Covers the whole tree, not just the three layers: tests and
+      # scripts are where loose typing usually accumulates.
+      #
+      # pytesseract is the only untyped dependency; stubs/pytesseract/ supplies hand
+      # written types for it (mypy_path is set in pyproject.toml).
+      - name: Mypy --strict
+        run: mypy --strict api services adapters config main.py tests scripts testdata
 
       - name: Pytest
         run: pytest -q --durations=10

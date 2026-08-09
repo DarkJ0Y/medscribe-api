@@ -105,11 +105,12 @@ def ocr_lines() -> Any:
 @pytest.fixture(scope="session")
 def transcription_fixture() -> Any:
     def load(name: str) -> dict[str, Any]:
-        return json.loads(
+        payload: dict[str, Any] = json.loads(
             (TESTDATA / "transcription" / "responses" / f"{name}.json").read_text(
                 encoding="utf-8"
             )
         )
+        return payload
 
     return load
 
@@ -117,7 +118,10 @@ def transcription_fixture() -> Any:
 @pytest.fixture(scope="session")
 def manifest() -> Any:
     def load(kind: str) -> dict[str, Any]:
-        return json.loads((TESTDATA / kind / "manifest.json").read_text(encoding="utf-8"))
+        payload: dict[str, Any] = json.loads(
+            (TESTDATA / kind / "manifest.json").read_text(encoding="utf-8")
+        )
+        return payload
 
     return load
 

@@ -195,6 +195,7 @@ def test_rejects_a_receipt_on_structure_not_keywords(ocr_lines: Any) -> None:
     parsed = parse_report(ocr_lines("non_lab_receipt"))
 
     assert parsed.strong_row_count == 0
+    # Checked before the emptiness assertion: `== ()` narrows the tuple to the empty
+    # type, after which the comprehension variable has no type left to infer.
+    assert not any("Basmati" in result.test_name for result in parsed.results)
     assert parsed.results == ()
-    # Nothing from the receipt may appear as a fabricated result.
-    assert not any("Basmati" in r.test_name for r in parsed.results)

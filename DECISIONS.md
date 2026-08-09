@@ -490,6 +490,52 @@ clinically significant.
 
 ---
 
+## D23 — A hand-written stub for pytesseract, not `ignore_missing_imports`
+
+**Decision.** `mypy --strict` gates the whole tree in CI. `pytesseract` — the only
+untyped dependency — is typed by hand in
+[stubs/pytesseract/](stubs/pytesseract/) rather than silenced with
+`ignore_missing_imports`. The pydantic mypy plugin is enabled; `soundfile` *is*
+allowed to be `Any`.
+
+**Why.** `ignore_missing_imports` turns a module into `Any`, which disables checking
+of *every* call into it — the opposite of what a strict gate is for. Writing the
+types down instead had an immediate payoff: declaring the real exception hierarchy
+revealed that `pytesseract.TesseractError` derives from **`RuntimeError`**, and that
+`adapters/ocr/tesseract.py` had `except RuntimeError` ordered *ahead* of
+`except TesseractError` — making the latter **dead code**. Real Tesseract failures
+were reporting the generic `"OCR failed"` message and silently dropping the
+`languages` detail.
+
+Both branches raise `ProviderUnavailableError`, so the existing test — which
+asserted on `exc.code` — passed either way. That is why the dead branch survived. It
+is now covered by `test_each_tesseract_failure_reaches_its_own_handler`, which
+asserts the *message* and the `languages` detail, plus a test pinning the hierarchy
+itself so a future re-parenting upstream fails loudly.
+
+Be precise about the credit here: **mypy did not find this bug.**
+`warn_unreachable` does not model exception subsumption in `except` chains, and the
+stub does not make it flag the redundant clause. Writing the stub is what surfaced
+it, by forcing the base classes to be stated explicitly. The guard is a test, not
+the type checker.
+
+`soundfile` is the one exception to the stub rule: it is used by a single call site
+in a developer script, and a faithful stub would have to describe numpy array
+returns. That is disproportionate, so it carries a scoped
+`ignore_missing_imports` override with the reasoning recorded in `pyproject.toml`.
+
+Enabling `plugins = ["pydantic.mypy"]` was needed for a real reason too: without it,
+mypy synthesizes `Settings.__init__` from the model fields and rejects
+`Settings(_env_file=None)`, which pydantic-settings accepts at runtime and which the
+test suite relies on to ignore a developer's local `.env`.
+
+**Cost.** The stub is deliberately partial — only the symbols the adapter touches —
+so reaching for anything else in `pytesseract` fails type checking until the stub is
+extended. That is the intended behaviour, but it is a small tax on future work, and
+the stub must be kept in step if pytesseract changes a signature.
+
+---
+
 ## D22 — The container ships `testdata/`, runs read-only, and needs no network
 
 **Decision.** The runtime image contains the fixture corpus, runs as `uid 1001`

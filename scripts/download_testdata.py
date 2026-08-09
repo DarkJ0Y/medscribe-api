@@ -58,6 +58,7 @@ import csv
 import hashlib
 import io
 import json
+import math
 import os
 import struct
 import sys
@@ -112,7 +113,10 @@ def _request(url: str, *, byte_range: tuple[int, int] | None = None) -> bytes:
         try:
             request = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(request, timeout=120) as response:
-                return response.read()
+                # Bound to a typed local: typeshed types the context manager's
+                # value as Any, and returning that directly trips no-any-return.
+                payload: bytes = response.read()
+                return payload
         except urllib.error.HTTPError as error:
             last_error = error
             if error.code not in (429, 500, 502, 503, 504):
@@ -219,7 +223,7 @@ def _rms_int16(pcm: bytes, *, max_samples: int = 50_000) -> float:
     stride = max(1, len(samples) // max_samples)
     window = samples[::stride]
     total = sum(float(value) * value for value in window)
-    return (total / len(window)) ** 0.5 / 32768
+    return math.sqrt(total / len(window)) / 32768
 
 
 #: Fractions through the audio data at which to try a clip. Long-form recordings
